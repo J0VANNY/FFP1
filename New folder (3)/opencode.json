@@ -1,0 +1,18 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "baseten": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Baseten",
+      "options": {
+        "baseURL": "https://inference.baseten.co/v1",
+        "apiKey": "zrkAKYNu.8kNTyAhSvuxpi26RdzT8qgqQeeN03VHb"
+      },
+      "models": {
+        "zai-org/GLM-5": {
+          "name": "G 5"
+        }
+      }
+    }
+  }
+}
