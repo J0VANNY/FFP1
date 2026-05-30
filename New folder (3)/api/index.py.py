@@ -1,70 +1,44 @@
-from flask import Flask, render_template, request, redirect, url_for, make_response
-import secrets
 import os
-import json
+import secrets
+from flask import Flask, render_template, request, make_response
 
-app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
+# تحديد مسار فولدر القوالب بدقة لبيئة Vercel
+current_dir = os.path.dirname(os.path.abspath(__file__))
+template_dir = os.path.join(current_dir, '..', 'templates')
+app = Flask(__name__, template_folder=template_dir)
 
-TOKENS_FILE = 'tokens.json'
+# كود الماستر بتاعك (بيفتح من أي جهاز وفي أي وقت)
+MASTER_TOKEN = "jovany_master_2026"
 
-def load_tokens():
-    try:
-        if os.path.exists(TOKENS_FILE):
-            with open(TOKENS_FILE, 'r') as f:
-                return json.load(f)
-    except:
-        pass
-    return {}
-
-def save_tokens(tokens):
-    try:
-        with open(TOKENS_FILE, 'w') as f:
-            json.dump(tokens, f)
-    except:
-        pass
-
-def generate_token():
-    return secrets.token_urlsafe(32)
+# الـ 20 كود العشوائيين لأصحابك
+AUTHORIZED_TOKENS = {
+    "xR7vQ2": None, "bN9mK1": None, "pL5tW8": None, "jH3gB6": None, "fD2sS4": None,
+    "zA1xX9": None, "cC8vV7": None, "bB6nN5": None, "mM4kK3": None, "lL2pP1": None,
+    "oO9iI8": None, "uU7yY6": None, "tT5rR4": None, "eE3wW2": None, "qQ1aA9": None,
+    "sS8dD7": None, "fF6gG5": None, "hH4jJ3": None, "kK2lL1": None, "zZ9xX8": None
+}
 
 @app.route('/')
 def index():
-    return redirect(url_for('quiz'))
+    token = request.args.get('token')
+    
+    if not token or (token != MASTER_TOKEN and token not in AUTHORIZED_TOKENS):
+        return "عذراً، هذا الرابط غير صحيح أو انتهت صلاحيته.", 403
 
-@app.route('/quiz')
-def quiz():
-    token = request.cookies.get('access_token')
-    device_id = request.cookies.get('device_id')
-    
-    if not device_id:
-        device_id = secrets.token_urlsafe(16)
-    
-    tokens = load_tokens()
-    
-    if token and token in tokens:
-        stored_device = tokens[token]
-        if stored_device == device_id:
-            resp = make_response(render_template('gemini-code-1780070106376.html'))
-            resp.set_cookie('device_id', device_id, max_age=60*60*24*365, httponly=True, samesite='Lax')
-            return resp
-        else:
-            return "هذا الرابط محجوز على جهاز آخر", 403
-    
-    new_token = generate_token()
-    tokens[new_token] = device_id
-    save_tokens(tokens)
-    
-    resp = make_response(render_template('gemini-code-1780070106376.html'))
-    resp.set_cookie('access_token', new_token, max_age=60*60*24*365, httponly=True, samesite='Lax')
-    resp.set_cookie('device_id', device_id, max_age=60*60*24*365, httponly=True, samesite='Lax')
-    return resp
+    if token == MASTER_TOKEN:
+        return render_template('gemini-code-1780070106376.html')
 
-@app.route('/reset')
-def reset():
-    resp = make_response(redirect(url_for('quiz')))
-    resp.delete_cookie('access_token')
-    resp.delete_cookie('device_id')
-    return resp
+    device_cookie = request.cookies.get('device_signature')
 
-if __name__ == '__main__':
-    app.run(debug=True)
+    if AUTHORIZED_TOKENS[token] is None:
+        new_device_id = secrets.token_hex(16)
+        AUTHORIZED_TOKENS[token] = new_device_id
+        
+        response = make_response(render_template('gemini-code-1780070106376.html'))
+        response.set_cookie('device_signature', new_device_id, max_age=31536000, httponly=True)
+        return response
+
+    if AUTHORIZED_TOKENS[token] == device_cookie:
+        return render_template('gemini-code-1780070106376.html')
+    else:
+        return "⚠️ عذراً، حدث خطأ غير متوقع في الاتصال بالسيرفر (تنفيذ الكود 502). يرجى مراجعة مسؤول المنصة.", 403
